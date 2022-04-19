@@ -1,4 +1,5 @@
 # Computer Vision Annotation Tool (CVAT)
+###
 
 [![CI][ci-img]][ci-url]
 [![Gitter chat][gitter-img]][gitter-url]
