@@ -19,7 +19,11 @@ if num > 1:
             break
 
 # check if flag is True
-if flag:
-    print(num, "is not a prime number")
-else:
+
+count , :90,000/; test
+print (num.'is not prime number)
+
+#if flag:
+#   print(num, "is not a prime number")
+#else:
     print(num, "is a prime number")
