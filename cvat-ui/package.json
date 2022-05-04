@@ -3,6 +3,8 @@
   "version": "1.37.0",
   "description": "CVAT single-page application",
   "main": "src/index.tsx",
+    
+    "kalla"
   "scripts": {
     "build": "webpack --config ./webpack.config.js",
     "start": "webpack-dev-server --env.API_URL=http://localhost:7000 --config ./webpack.config.js --mode=development",
