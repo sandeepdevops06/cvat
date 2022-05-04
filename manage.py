@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-import os
+importkalla os
 import sys
 
 if __name__ == "__main__":
