@@ -12,9 +12,10 @@ from django.contrib.auth.models import User
 from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.db.models.fields import FloatField
-from django.core.serializers.json import DjangoJSONEncoder
 from cvat.apps.engine.utils import parse_specific_attributes
 from cvat.apps.organizations.models import Organization
+
+# import jsonfield
 
 class SafeCharField(models.CharField):
     def get_prep_value(self, value):
@@ -227,6 +228,26 @@ class Image(models.Model):
     class Meta:
         default_permissions = ()
 
+
+
+# class Clients(models.Model):
+#     name = models.CharField(max_length=72)
+#     address = models.CharField(max_length=72)
+#     contact = models.CharField(max_length=72)
+
+#Ltts changes
+class ProjectType(models.Model):
+    project_type = models.CharField(max_length=72)
+    # tool = models.CharField(max_length=72)
+    dimension = models.CharField(max_length=72)
+
+
+class Apps(models.Model):
+    app_name = models.CharField(max_length=72)
+    project_type = models.ForeignKey(ProjectType,on_delete=models.CASCADE)
+    tool = models.CharField(max_length=72)
+    # server_url = models.CharField(max_length=1024)
+
 class Project(models.Model):
 
     name = SafeCharField(max_length=256)
@@ -234,22 +255,29 @@ class Project(models.Model):
                               on_delete=models.SET_NULL, related_name="+")
     assignee = models.ForeignKey(User, null=True, blank=True,
                                  on_delete=models.SET_NULL, related_name="+")
-    bug_tracker = models.CharField(max_length=2000, blank=True, default="")
+    # bug_tracker = models.CharField(max_length=2000, blank=True, default="")
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
     status = models.CharField(max_length=32, choices=StatusChoice.choices(),
                               default=StatusChoice.ANNOTATION)
     organization = models.ForeignKey(Organization, null=True, default=None,
         blank=True, on_delete=models.SET_NULL, related_name="projects")
+    project_type = models.ForeignKey(ProjectType,on_delete=models.CASCADE)
+    # data_type = models.CharField(max_length=72)
+    description = models.CharField(max_length=256)
+    start_date = models.DateTimeField()
+    project_config = models.JSONField()
+    p2p_mapping = models.PositiveIntegerField(null=True)
+    project_creation_status = models.CharField(max_length=72,default='in_progress')
+    # labels = models.CharField(max_length=72)
+    # client_id = models.ForeignKey(Clients,on_delete=models.CASCADE)
+
 
     def get_project_dirname(self):
         return os.path.join(settings.PROJECTS_ROOT, str(self.id))
 
     def get_project_logs_dirname(self):
         return os.path.join(self.get_project_dirname(), 'logs')
-
-    def get_tmp_dirname(self):
-        return os.path.join(self.get_project_dirname(), "tmp")
 
     def get_client_log_path(self):
         return os.path.join(self.get_project_logs_dirname(), "client.log")
@@ -263,6 +291,20 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+
+class ProjectAppStages(models.Model):
+    project_id = models.ForeignKey(Project,on_delete=models.CASCADE)
+    # organization_id = models.ForeignKey(Organization,on_delete=models.CASCADE)
+    created_by = models.ForeignKey(User,on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status = models.CharField(max_length=72)
+    is_active = models.BooleanField(default=True)
+    app_alias_name = models.CharField(max_length=256)
+    app_config = models.JSONField(blank=True, default=dict)
+    app_id = models.ForeignKey(Apps,on_delete=models.CASCADE)
+    # app_server = models.CharField(max_length=256)
+    app_seq_id = models.IntegerField()
 
 class Task(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE,
@@ -307,9 +349,6 @@ class Task(models.Model):
 
     def get_task_artifacts_dirname(self):
         return os.path.join(self.get_task_dirname(), 'artifacts')
-
-    def get_tmp_dirname(self):
-        return os.path.join(self.get_task_dirname(), "tmp")
 
     def __str__(self):
         return self.name
@@ -401,15 +440,6 @@ class Job(models.Model):
         task = self.segment.task
         project = task.project
         return project.label_set if project else task.label_set
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        db_commit = JobCommit(job=self, scope='create',
-            owner=self.segment.task.owner, data={
-                'stage': self.stage, 'state': self.state, 'assignee': self.assignee
-            })
-        db_commit.save()
-
 
     class Meta:
         default_permissions = ()
@@ -507,20 +537,11 @@ class Annotation(models.Model):
         default_permissions = ()
 
 class Commit(models.Model):
-    class JSONEncoder(DjangoJSONEncoder):
-        def default(self, o):
-            if isinstance(o, User):
-                data = {'user': {'id': o.id, 'username': o.username}}
-                return data
-            else:
-                return super().default(o)
-
-
     id = models.BigAutoField(primary_key=True)
-    scope = models.CharField(max_length=32, default="")
     owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    version = models.PositiveIntegerField(default=0)
     timestamp = models.DateTimeField(auto_now=True)
-    data = models.JSONField(default=dict, encoder=JSONEncoder)
+    message = models.CharField(max_length=4096, default="")
 
     class Meta:
         abstract = True
@@ -535,8 +556,6 @@ class FloatArrayField(models.TextField):
     def from_db_value(self, value, expression, connection):
         if not value:
             return value
-        if value.startswith('[') and value.endswith(']'):
-            value = value[1:-1]
         return [float(v) for v in value.split(self.separator)]
 
     def to_python(self, value):
@@ -673,7 +692,7 @@ class CloudStorage(models.Model):
     updated_date = models.DateTimeField(auto_now=True)
     credentials = models.CharField(max_length=500)
     credentials_type = models.CharField(max_length=29, choices=CredentialsTypeChoice.choices())#auth_type
-    specific_attributes = models.CharField(max_length=1024, blank=True)
+    specific_attributes = models.CharField(max_length=128, blank=True)
     description = models.TextField(blank=True)
     organization = models.ForeignKey(Organization, null=True, default=None,
         blank=True, on_delete=models.SET_NULL, related_name="cloudstorages")
@@ -703,3 +722,47 @@ class CloudStorage(models.Model):
 
     def get_key_file_path(self):
         return os.path.join(self.get_storage_dirname(), 'key.json')
+
+class ProjectData(models.Model):
+    # data_info = models.JSONField()
+    project_id = models.ForeignKey(Project,on_delete=models.CASCADE)
+    data_ref = models.CharField(max_length=72)
+
+class ProjectDataMeta(models.Model):
+    project_data_id = models.ForeignKey(ProjectData,on_delete=models.CASCADE)
+    data_info = models.JSONField()
+
+class Workflow(models.Model):
+    project_app = models.ForeignKey(ProjectAppStages,on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User,on_delete=models.CASCADE)
+    status = models.CharField(max_length=72)
+    is_active = models.BooleanField(default=True)
+    project_data_meta = models.ForeignKey(ProjectDataMeta,on_delete=models.CASCADE)
+    parent_wf_id = models.PositiveIntegerField(null=True)
+
+class ProjectAppUserMapping(models.Model):
+    user_id = models.ForeignKey(User,on_delete=models.CASCADE)
+    project_app_id = models.ForeignKey(ProjectAppStages,on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
+
+class TpAppsUsers(models.Model):
+    pm_user = models.ForeignKey(User,on_delete=models.CASCADE)
+    username = models.CharField(max_length=72)
+    password = models.CharField(max_length=72)
+    app = models.ForeignKey(Apps,on_delete=models.CASCADE)
+
+class UserWfMapping(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    workflow = models.ForeignKey(Workflow,on_delete=models.CASCADE)
+    project_app =  models.ForeignKey(ProjectAppStages,on_delete=models.CASCADE)
+
+class OrgUsersMapping(models.Model):
+    org_id = models.ForeignKey(Organization,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User,on_delete=models.CASCADE)
+    is_admin =  models.BooleanField(default=False)
+
+class ProjectUsersMapping(models.Model):
+    project_id = models.ForeignKey(Project,on_delete=models.CASCADE)
+    user_id = models.ForeignKey(User,on_delete=models.CASCADE)
+    is_admin =  models.BooleanField(default=False)
