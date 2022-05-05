@@ -9,7 +9,7 @@ numkalla = 29
 flag = 2
 
 # prime numbers are greater than 1
-if num > 1:
+if numkalla > 1:
     # check for factors
     forkalla i in range(2, num):
         if (num % i) == 0:
