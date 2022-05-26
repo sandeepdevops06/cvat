@@ -8,7 +8,8 @@ name: Synopsys Intelligent Security Scan
 on:
   push:
     branches: [ develop, master ]
-       - master
+      - develop
+      - master
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ develop, master ]
