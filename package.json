@@ -106,9 +106,9 @@
     "build:cvat-core": "npm run build --workspace=cvat-core",
     "build:cvat-data": "npm run build --workspace=cvat-data",
     "server:cvat-canvas": "npm run server --workspace=cvat-canvas",
-    "server:cvat-canvas3d": "npm run server --workspace=cvat-canvas3d",
-    "server:cvat-data": "npm run server --workspace=cvat-data",
-    "start:cvat-ui": "npm run start --workspace=cvat-ui"
+   # "server:cvat-canvas3d": "npm run server --workspace=cvat-canvas3d",
+   # "server:cvat-data": "npm run server --workspace=cvat-data",
+   # "start:cvat-ui": "npm run start --workspace=cvat-ui"
   },
   "repository": {
     "type": "git",
