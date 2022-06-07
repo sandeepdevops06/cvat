@@ -29,6 +29,18 @@ def generate_versioning_config(filename, versions, url_prefix=''):
         file_object.write('version = "{}"\n'.format(version))
         file_object.write('url = "{}"\n\n'.format(url))
 
+        print("This line will be printed.")
+
+
+
+x = 1
+if x == 1:
+# indented four spaces
+print("x is 1.")
+
+def
+
+print("Goodbye, World!")
     with open(filename, 'w') as f:
         write_version_item(f, 'Latest version', '{}/'.format(url_prefix))
         for v in versions:
