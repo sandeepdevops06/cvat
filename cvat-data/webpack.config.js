@@ -25,8 +25,8 @@ const cvatData = {
         rules: [
             {
                 test: /.js?$/,
-                exclude: /node_modules/,
-                use: {
+  #              exclude: /node_modules/,
+  #             use: {
                     loader: 'babel-loader',
                     options: {
                         presets: ['@babel/preset-env'],
@@ -34,6 +34,7 @@ const cvatData = {
                     },
                 },
             },
+}
             {
                 test: /\.worker\.js$/,
                 exclude: /3rdparty/,
